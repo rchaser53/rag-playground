@@ -24,7 +24,7 @@ function isQuotaLikeError(err: unknown): boolean {
 }
 
 function getLlmProvider(): string {
-  return (process.env.LLM_PROVIDER ?? 'openai').toLowerCase();
+  return (process.env.LLM_PROVIDER ?? 'gemini').toLowerCase();
 }
 
 function isGeminiNoQuotaError(err: unknown): boolean {
@@ -87,7 +87,7 @@ async function main() {
 
     try {
       const res = await llm.invoke(prompt);
-      // ChatOpenAI returns an AIMessage
+      // Returns an AIMessage-like object
       return typeof (res as any).content === 'string' ? (res as any).content : JSON.stringify(res);
     } catch (err) {
       if (isQuotaLikeError(err)) {
@@ -100,10 +100,6 @@ async function main() {
             context
           );
         }
-        return (
-          '（OpenAIの利用枠/レート制限のため、LLM回答は省略します。検索で取れたContextを表示します）\n\n' +
-          context
-        );
       }
       if (isModelNotFoundError(err)) {
         if (getLlmProvider() === 'gemini' || getLlmProvider() === 'google' || getLlmProvider() === 'google-genai') {
@@ -113,11 +109,6 @@ async function main() {
             context
           );
         }
-        return (
-          '（CHAT_MODELで指定したモデルにアクセスできないため、LLM回答は省略します。検索で取れたContextを表示します）\n' +
-          'ヒント: .env の CHAT_MODEL を gpt-4o-mini 等に変更してください。\n\n' +
-          context
-        );
       }
       throw err;
     }

@@ -1,8 +1,6 @@
-import { OpenAIEmbeddings } from '@langchain/openai';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Embeddings } from '@langchain/core/embeddings';
 
-import { config } from './config.js';
 import { serialize, withRetry } from './retry.js';
 
 class LocalHashEmbeddings extends Embeddings {
@@ -59,7 +57,7 @@ class RateLimitedEmbeddings extends Embeddings {
   }
 }
 
-function isQuotaLikeError(err: unknown): boolean {
+function isRateLimitOrQuotaLikeError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const anyErr = err as { status?: unknown; message?: unknown; name?: unknown };
   const message = typeof anyErr.message === 'string' ? anyErr.message : '';
@@ -68,12 +66,14 @@ function isQuotaLikeError(err: unknown): boolean {
     anyErr.status === 429 ||
     name.includes('InsufficientQuota') ||
     message.includes('exceeded your current quota') ||
-    message.includes('InsufficientQuota')
+    message.includes('InsufficientQuota') ||
+    message.includes('Quota exceeded') ||
+    message.includes('RESOURCE_EXHAUSTED')
   );
 }
 
 export function getEmbeddings(): Embeddings {
-  const provider = (process.env.EMBEDDINGS_PROVIDER ?? 'openai').toLowerCase();
+  const provider = (process.env.EMBEDDINGS_PROVIDER ?? 'gemini').toLowerCase();
 
   if (provider === 'local' || provider === 'localhash') {
     return new LocalHashEmbeddings();
@@ -87,23 +87,13 @@ export function getEmbeddings(): Embeddings {
     return new RateLimitedEmbeddings(new GoogleGenerativeAIEmbeddings({ apiKey, model }));
   }
 
-  return new RateLimitedEmbeddings(
-    new OpenAIEmbeddings({
-      apiKey: (() => {
-        const key = config.openaiApiKey;
-        if (!key) throw new Error('Missing env var: OPENAI_API_KEY (required for EMBEDDINGS_PROVIDER=openai)');
-        return key;
-      })(),
-      model: config.embeddingModel
-    })
-  );
+  throw new Error(`Unsupported EMBEDDINGS_PROVIDER: ${provider}. Set EMBEDDINGS_PROVIDER=gemini or localhash`);
 }
 
 export function getEmbeddingsWithFallback(errFromFirstAttempt?: unknown): Embeddings {
-  if (errFromFirstAttempt && isQuotaLikeError(errFromFirstAttempt)) {
+  if (errFromFirstAttempt && isRateLimitOrQuotaLikeError(errFromFirstAttempt)) {
     console.warn(
-      'OpenAI Embeddings が quota/rate limit で失敗したため、ローカル簡易Embedding(localhash)にフォールバックします。' +
-        '（本番用途ではEMBEDDINGS_PROVIDER=openaiでOpenAIの利用枠を確保してください）'
+      'Embeddings が quota/rate limit で失敗したため、ローカル簡易Embedding(localhash)にフォールバックします。'
     );
     return new LocalHashEmbeddings();
   }
