@@ -49,6 +49,19 @@ npm run chroma:up
 npm run dev:ingest
 ```
 
+### Embeddings を変更した場合（重要）
+
+`EMBEDDINGS_PROVIDER` や `GEMINI_EMBEDDING_MODEL` を変更すると、Chroma の既存コレクションと埋め込み次元が合わず
+`Collection expecting embedding with dimension ...` のようなエラーになることがあります。
+
+その場合は **コレクションを削除して作り直す** 必要があります。
+
+```bash
+npm run dev:ingest -- --reset-collection
+```
+
+このとき [src/ingest.ts](src/ingest.ts) が削除実行のログ（`[ingest] Deleted collection ...`）を出力します。
+
 ## 6) 質問(検索+回答)
 
 ```bash

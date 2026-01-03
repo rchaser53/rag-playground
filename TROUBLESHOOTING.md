@@ -37,5 +37,10 @@
 ### `model ... does not exist` / `model_not_found`
 
 - `GEMINI_CHAT_MODEL` / `GEMINI_EMBEDDING_MODEL` を利用可能なモデル名に変更してください。
-  - 例: `GEMINI_CHAT_MODEL=gemini-1.5-flash`
+  - 例: `GEMINI_CHAT_MODEL=gemini-3-pro-preview`
   - 例: `GEMINI_EMBEDDING_MODEL=text-embedding-004`
+
+### `Collection expecting embedding with dimension ...` が出る
+
+- Embeddings の種類/モデルを切り替えたため、既存の Chroma コレクションの次元と一致していません。
+- `npm run dev:ingest -- --reset-collection` で対象コレクションを削除→再作成してください（削除された場合はログが出ます）。
