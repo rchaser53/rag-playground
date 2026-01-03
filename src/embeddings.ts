@@ -46,6 +46,12 @@ class RateLimitedEmbeddings extends Embeddings {
     for (let i = 0; i < documents.length; i += size) {
       const batch = documents.slice(i, i + size);
       const vectors = await serialize(() => withRetry(() => this.inner.embedDocuments(batch), { spacingMs: this.spacingMs }));
+
+      if (!Array.isArray(vectors) || vectors.some((v) => !Array.isArray(v) || v.length === 0)) {
+        throw new Error(
+          'Embeddings returned an empty vector. Check GEMINI_API_KEY (expired/invalid) and GEMINI_EMBEDDING_MODEL.'
+        );
+      }
       out.push(...vectors);
     }
 
@@ -53,7 +59,13 @@ class RateLimitedEmbeddings extends Embeddings {
   }
 
   async embedQuery(text: string): Promise<number[]> {
-    return serialize(() => withRetry(() => this.inner.embedQuery(text), { spacingMs: this.spacingMs }));
+    const vector = await serialize(() => withRetry(() => this.inner.embedQuery(text), { spacingMs: this.spacingMs }));
+    if (!Array.isArray(vector) || vector.length === 0) {
+      throw new Error(
+        'Embeddings returned an empty vector. Check GEMINI_API_KEY (expired/invalid) and GEMINI_EMBEDDING_MODEL.'
+      );
+    }
+    return vector;
   }
 }
 

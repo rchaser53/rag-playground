@@ -6,7 +6,7 @@ import type { DocumentInterface } from '@langchain/core/documents';
 
 import { config } from './config.js';
 import { getEmbeddingsWithFallback } from './embeddings.js';
-import { getChatModel } from './llm.js';
+import { getChatModel, getGeminiChatModelName } from './llm.js';
 
 function isQuotaLikeError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
@@ -52,7 +52,41 @@ function isModelNotFoundError(err: unknown): boolean {
   );
 }
 
+function isInvalidApiKeyError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const anyErr = err as { status?: unknown; message?: unknown; errorDetails?: unknown; error?: unknown };
+  const message = typeof anyErr.message === 'string' ? anyErr.message : '';
+  const status = typeof anyErr.status === 'number' ? anyErr.status : undefined;
+  const details = Array.isArray((anyErr as any).errorDetails) ? ((anyErr as any).errorDetails as any[]) : [];
+
+  const hasApiKeyInvalidReason = details.some((d) => d && typeof d === 'object' && (d as any).reason === 'API_KEY_INVALID');
+  const msg = message.toLowerCase();
+  return status === 400 && (hasApiKeyInvalidReason || msg.includes('api key') && (msg.includes('expired') || msg.includes('invalid')));
+}
+
 async function main() {
+  const argv = process.argv.slice(2);
+  const isDryRun = argv.includes('--dry-run') || argv.includes('--dryrun');
+
+  if (isDryRun) {
+    const provider = (process.env.LLM_PROVIDER ?? 'gemini').toLowerCase();
+    const embeddingsProvider = (process.env.EMBEDDINGS_PROVIDER ?? 'gemini').toLowerCase();
+    console.log(
+      JSON.stringify(
+        {
+          llmProvider: provider,
+          geminiChatModel: provider === 'gemini' || provider === 'google' || provider === 'google-genai' ? getGeminiChatModelName() : null,
+          embeddingsProvider,
+          chromaUrl: config.chromaUrl,
+          chromaCollection: config.chromaCollection
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
   const baseEmbeddings = getEmbeddingsWithFallback();
 
   const baseVectorStore = await Chroma.fromExistingCollection(baseEmbeddings, {
@@ -90,6 +124,14 @@ async function main() {
       // Returns an AIMessage-like object
       return typeof (res as any).content === 'string' ? (res as any).content : JSON.stringify(res);
     } catch (err) {
+      if (isInvalidApiKeyError(err)) {
+        if (getLlmProvider() === 'gemini' || getLlmProvider() === 'google' || getLlmProvider() === 'google-genai') {
+          return (
+            '（Gemini APIキーが無効/期限切れのため、LLM回答は省略します。`.env` の `GEMINI_API_KEY` を更新してください）\n\n' +
+            context
+          );
+        }
+      }
       if (isQuotaLikeError(err)) {
         if (getLlmProvider() === 'gemini' || getLlmProvider() === 'google' || getLlmProvider() === 'google-genai') {
           const extra = isGeminiNoQuotaError(err)
@@ -105,7 +147,7 @@ async function main() {
         if (getLlmProvider() === 'gemini' || getLlmProvider() === 'google' || getLlmProvider() === 'google-genai') {
           return (
             '（GEMINI_CHAT_MODELで指定したモデルが見つからない/権限がないため、LLM回答は省略します。検索で取れたContextを表示します）\n' +
-            'ヒント: GEMINI_CHAT_MODEL を `gemini-flash-latest` などに変更するか、ListModelsで利用可能モデルを確認してください。\n\n' +
+            'ヒント: GEMINI_CHAT_MODEL を `gemini-3-pro-preview` や `gemini-flash-latest` などに変更するか、ListModelsで利用可能モデルを確認してください。\n\n' +
             context
           );
         }
@@ -114,7 +156,6 @@ async function main() {
     }
   }
 
-  const argv = process.argv.slice(2);
   const argQuestion = (() => {
     // Usage examples:
     //   tsx src/query.ts --question "..."

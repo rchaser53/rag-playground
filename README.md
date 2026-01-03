@@ -27,7 +27,7 @@ cp .env.example .env
 - `.env` で以下を設定
   - `LLM_PROVIDER=gemini`
   - `EMBEDDINGS_PROVIDER=gemini`
-  - 必要に応じて `GEMINI_CHAT_MODEL` / `GEMINI_EMBEDDING_MODEL` も変更
+  - 必要に応じて `GEMINI_CHAT_MODEL` / `GEMINI_EMBEDDING_MODEL` も変更（例: `GEMINI_CHAT_MODEL=gemini-3-pro-preview`）
 
 ## 3) Chroma起動
 

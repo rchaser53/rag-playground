@@ -35,7 +35,13 @@ async function main() {
     chunkSize: 1000,
     chunkOverlap: 150
   });
-  const splitDocs = await splitter.splitDocuments(docs);
+  const splitDocsRaw = await splitter.splitDocuments(docs);
+  const splitDocs = splitDocsRaw.filter((d) => (d.pageContent ?? '').trim().length > 0);
+  if (splitDocs.length === 0) {
+    throw new Error(
+      `All chunks were empty after splitting. Check input files under ${rawDir} (they may contain only whitespace).`
+    );
+  }
 
   let vectorStore: Chroma;
   try {

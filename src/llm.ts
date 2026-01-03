@@ -4,6 +4,10 @@ import { serialize, withRetry } from './retry.js';
 
 export type LlmProvider = 'gemini';
 
+export function getGeminiChatModelName(): string {
+  return process.env.GEMINI_CHAT_MODEL ?? 'gemini-3-pro-preview';
+}
+
 export function getChatModel() {
   const provider = (process.env.LLM_PROVIDER ?? 'gemini').toLowerCase();
 
@@ -11,8 +15,8 @@ export function getChatModel() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('Missing env var: GEMINI_API_KEY (required for LLM_PROVIDER=gemini)');
 
-    // Model name examples: gemini-1.5-flash, gemini-1.5-pro
-    const model = process.env.GEMINI_CHAT_MODEL ?? 'gemini-1.5-flash';
+    // Model name examples: gemini-3-pro-preview, gemini-flash-latest
+    const model = getGeminiChatModelName();
 
     const base = new ChatGoogleGenerativeAI({
       apiKey,
