@@ -82,6 +82,22 @@ function uiHtml() {
       </div>
     </div>
 
+    <div class="card" style="margin-top: 12px;">
+      <h2 style="margin-top:0">ファイルから追加</h2>
+      <div class="row">
+        <input id="file" type="file" multiple accept=".txt,.md,.json,text/plain,text/markdown,application/json" />
+        <button id="import">選択したファイルを追加</button>
+        <label class="muted" style="display:flex; gap:8px; align-items:center;">
+          <input id="autoReindex" type="checkbox" checked />
+          インポート後に自動で再インデックス
+        </label>
+      </div>
+      <p class="muted" style="margin-bottom:0">
+        .txt/.md は「ファイル内容を content」として追加します（title=ファイル名、source=file:&lt;name&gt;）。
+        .json は <code>{ title, content, source?, tags? }</code> またはその配列をインポートできます。
+      </p>
+    </div>
+
     <table>
       <thead>
         <tr>
@@ -106,6 +122,12 @@ function uiHtml() {
         const tagsRaw = el('tags').value;
         const tags = tagsRaw.split(',').map(s => s.trim()).filter(Boolean);
         return { title, content, source, tags: tags.length ? tags : undefined };
+      }
+
+      function tagsFromForm() {
+        const tagsRaw = el('tags').value;
+        const tags = tagsRaw.split(',').map(s => s.trim()).filter(Boolean);
+        return tags.length ? tags : undefined;
       }
 
       function fillForm(item) {
@@ -209,6 +231,79 @@ function uiHtml() {
           setStatus('完了: items=' + r.items + ', chunks=' + r.chunks);
         } catch (e) {
           setStatus('再インデックス失敗: ' + e.message);
+        }
+      };
+
+      el('import').onclick = async () => {
+        const inputEl = el('file');
+        const files = Array.from(inputEl.files || []);
+        if (files.length === 0) return setStatus('ファイルを選択してください');
+
+        const defaultTags = tagsFromForm();
+        const shouldReindex = !!el('autoReindex').checked;
+        let created = 0;
+
+        try {
+          setStatus('インポート中…');
+          for (const f of files) {
+            const text = await f.text();
+            const name = f.name || 'uploaded';
+
+            if (name.toLowerCase().endsWith('.json')) {
+              let parsed;
+              try {
+                parsed = JSON.parse(text);
+              } catch (e) {
+                throw new Error('JSON解析に失敗: ' + name);
+              }
+
+              const arr = Array.isArray(parsed) ? parsed : [parsed];
+              for (const obj of arr) {
+                if (!obj || typeof obj !== 'object') continue;
+                const payload = {
+                  title: String(obj.title || name),
+                  content: String(obj.content || ''),
+                  source: obj.source !== undefined ? String(obj.source) : 'file:' + name,
+                  tags: Array.isArray(obj.tags) ? obj.tags.map(String) : defaultTags
+                };
+                if (!payload.content.trim()) continue;
+                await api('/api/items', {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                created++;
+              }
+              continue;
+            }
+
+            // txt/md/その他はプレーンテキストとして追加
+            const payload = {
+              title: name,
+              content: text,
+              source: 'file:' + name,
+              tags: defaultTags
+            };
+            if (!payload.content.trim()) continue;
+            await api('/api/items', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            created++;
+          }
+
+          await load();
+          if (shouldReindex) {
+            setStatus('インポート完了: ' + created + '件。再インデックス中…');
+            const r = await api('/api/reindex', { method: 'POST' });
+            setStatus('インポート完了: ' + created + '件。再インデックス完了: items=' + r.items + ', chunks=' + r.chunks);
+          } else {
+            setStatus('インポート完了: ' + created + '件');
+          }
+          inputEl.value = '';
+        } catch (e) {
+          setStatus('インポート失敗: ' + e.message);
         }
       };
 
