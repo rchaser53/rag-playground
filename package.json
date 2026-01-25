@@ -6,6 +6,8 @@
   "scripts": {
     "dev:ingest": "tsx src/ingest.ts",
     "dev:query": "tsx src/query.ts",
+    "dev:admin": "tsx src/admin/server.ts",
+    "dev:reindex": "tsx src/reindex.ts",
     "chroma:up": "docker compose up -d",
     "chroma:down": "docker compose down",
     "typecheck": "tsc -p tsconfig.json --noEmit"

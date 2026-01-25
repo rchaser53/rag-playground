@@ -1,4 +1,48 @@
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+
+function isQuotaLikeError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const anyErr = err as { status?: unknown; message?: unknown; name?: unknown };
+  const message = typeof anyErr.message === 'string' ? anyErr.message : '';
+  const name = typeof anyErr.name === 'string' ? anyErr.name : '';
+  return (
+    anyErr.status === 429 ||
+    name.includes('InsufficientQuota') ||
+    message.includes('exceeded your current quota') ||
+    message.includes('InsufficientQuota') ||
+    message.includes('Quota exceeded') ||
+    message.includes('rate-limits')
+  );
+}
+
+export function getGeminiEmbeddingModelName(): string {
+  return process.env.GEMINI_EMBEDDING_MODEL ?? 'text-embedding-004';
+}
+
+export function getGeminiEmbeddingModelNameFallback(): string {
+  return process.env.GEMINI_EMBEDDING_MODEL_FALLBACK ?? getGeminiEmbeddingModelName();
+}
+
+export function getGeminiEmbeddings(modelName?: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Missing env var: GEMINI_API_KEY (required for embeddings)');
+
+  return new GoogleGenerativeAIEmbeddings({
+    apiKey,
+    model: modelName ?? getGeminiEmbeddingModelName()
+  });
+}
+
+// 既存コード互換: 何か失敗したら別モデルへ切り替える余地を作る。
+// (依存関係的に「別プロバイダ」への本格的フォールバックは現状なし)
+export function getGeminiEmbeddingsWithFallback(cause?: unknown) {
+  if (cause && isQuotaLikeError(cause)) {
+    return getGeminiEmbeddings(getGeminiEmbeddingModelNameFallback());
+  }
+  return getGeminiEmbeddings(getGeminiEmbeddingModelName());
+}
+
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Embeddings } from '@langchain/core/embeddings';
 
 import { serialize, withRetry } from './retry.js';
