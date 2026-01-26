@@ -1,7 +1,4 @@
-node_modules/
-dist/
+node_modules
 .env
-.DS_Store
-
-# Chroma persistence
-data/shikiho/chroma/
+dist
+data
