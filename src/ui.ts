@@ -92,7 +92,20 @@ function renderHits(hits){const el=$("hits");el.innerHTML="";for(const h of (hit
 $("saveBtn").addEventListener("click",async()=>{$("saveToast").textContent="保存中...";try{const out=await api("/api/entries",{date:$("date").value,title:$("title").value,content:$("content").value});$("saveToast").textContent=\`保存しました (id=\${out.id})\`;}catch(e){$("saveToast").textContent=\`失敗: \${e.message}\`;}});
 $("sampleBtn").addEventListener("click",async()=>{$("saveToast").textContent="サンプル投入中...";try{const today=isoToday();const samples=[{date:today,title:"RAGアプリの設計",content:"SQLiteで永続化し、埋め込みで検索→LLMで回答する構成を検討した。"},{date:today,title:"GUIを実装",content:"ブラウザGUIから記録と問い合わせができる画面を作った。"},{date:"2025-12-30",title:"依存関係の整理",content:"Node/TS, express, better-sqlite3, openai SDK を採用。"}];for(const s of samples){await api("/api/entries",s);}$("saveToast").textContent="サンプル投入完了";}catch(e){$("saveToast").textContent=\`失敗: \${e.message}\`;}});
 $("askBtn").addEventListener("click",async()=>{$("answer").textContent="問い合わせ中...";$("debug").textContent="";try{const out=await api("/api/query",{query:$("q").value,topK:6});$("answer").textContent=out.answer||"";$("debug").textContent=out.note||"";renderHits(out.hits);}catch(e){$("answer").textContent=\`失敗: \${e.message}\`;}});
-async function refreshStatus(){try{const res=await fetch("/api/status");const j=await res.json();$("statusPill").textContent=j.openaiEnabled?"API: OpenAI enabled":"API: OpenAI disabled";}catch{$("statusPill").textContent="API: unknown";}}
+async function refreshStatus(){
+  try{
+    const res=await fetch("/api/status");
+    const j=await res.json();
+    const llm=j.llmProvider||"?";
+    const emb=j.embeddingsProvider||"?";
+    const llmOn=Boolean(j.llmEnabled);
+    const embOn=Boolean(j.embeddingsEnabled);
+    $("statusPill").textContent=
+      "LLM: "+llm+" "+(llmOn?"on":"off")+" | Emb: "+emb+" "+(embOn?"on":"off");
+  }catch{
+    $("statusPill").textContent="API: unknown";
+  }
+}
 refreshStatus();
 `;
 }

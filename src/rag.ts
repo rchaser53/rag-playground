@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { z } from "zod";
-import { embedText, answerWithContext } from "./openai.js";
+import { embedText, answerWithContext } from "./ai.js";
 import { cosineSimilarity, extractISODateFromQuery, normalizeDateToISO } from "./text.js";
 
 type EntryWithEmbeddingRow = {
@@ -114,11 +114,11 @@ export async function queryRag(
   const llm = await answerWithContext({ question: q, dateFilterISO, contexts });
 
   const noteParts: string[] = [];
-  if (!hasEmbeddings) noteParts.push("OPENAI_API_KEY 未設定のため、埋め込み検索は無効です。");
+  if (!hasEmbeddings) noteParts.push("埋め込み生成が無効です（APIキー未設定など）。");
   if (dateFilterISO) noteParts.push(`日付フィルタ: ${dateFilterISO}`);
   if (scored.some((x) => !x.hasVector)) {
     noteParts.push(
-      "一部ログは埋め込み未作成のためスコア0です（APIキー設定後に再登録すると改善します）。"
+      "一部ログは埋め込み未作成のためスコア0です（設定後に再登録すると改善します）。"
     );
   }
 
