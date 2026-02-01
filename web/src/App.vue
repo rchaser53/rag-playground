@@ -188,7 +188,7 @@ onMounted(() => {
         <h2>問い合わせ</h2>
 
         <label>質問</label>
-        <input v-model="query" placeholder="2026/01/25に何をやった？" @keyup.enter="ask" />
+        <input v-model="query" placeholder="2026/01/25に何をやった？" />
 
         <div class="row" style="margin-top: 10px">
           <button :disabled="asking" @click="ask">聞く</button>
