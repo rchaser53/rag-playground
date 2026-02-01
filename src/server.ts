@@ -1,26 +1,18 @@
 import "dotenv/config";
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { env } from "./env.js";
 import { openDb } from "./db.js";
 import { createEntry, queryRag } from "./rag.js";
-import { appJs, indexHtml } from "./ui.js";
 import { embeddingsEnabled, llmEnabled, getRuntimeModelInfo } from "./ai.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
 const db = openDb(env.dataDir);
-
-app.get("/", (_req, res) => {
-  res.setHeader("content-type", "text/html; charset=utf-8");
-  res.send(indexHtml());
-});
-
-app.get("/app.js", (_req, res) => {
-  res.setHeader("content-type", "text/javascript; charset=utf-8");
-  res.send(appJs());
-});
 
 app.get("/api/status", (_req, res) => {
   const info = getRuntimeModelInfo();
@@ -64,6 +56,28 @@ app.post("/api/query", async (req, res) => {
     res.status(400).json({ error: e?.message ?? "bad request" });
   }
 });
+
+// Serve the built Vue app in production.
+// In development, run Vite separately (default: http://127.0.0.1:5173).
+const repoRootDir = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const webDistDir = path.join(repoRootDir, "web", "dist");
+
+if (fs.existsSync(webDistDir)) {
+  app.use(express.static(webDistDir));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(webDistDir, "index.html"));
+  });
+} else {
+  app.get("/", (_req, res) => {
+    res
+      .status(404)
+      .type("text/plain; charset=utf-8")
+      .send(
+        "UI is not built. Run `npm run dev` (and open Vite on :5173) or `npm run build` then `npm start`."
+      );
+  });
+}
 
 app.listen(env.port, () => {
   // eslint-disable-next-line no-console
