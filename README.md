@@ -18,7 +18,7 @@ npm install
 cp .env.example .env
 ~~~
 
-`.env` を編集して最低限 `OPENAI_API_KEY` を設定します。
+`.env` を編集して最低限 `GEMINI_API_KEY` を設定します。
 
 ## 起動
 
@@ -42,18 +42,26 @@ npm run start
 1. 画面の「記録する」で `日付 / タイトル / 詳細` を入力して保存
 2. 「問い合わせ」で質問（例: `2026/01/25に何をやった？`）を入力して実行
 
-`OPENAI_API_KEY` が未設定でも動作しますが、その場合は埋め込み検索と LLM 回答が無効になり、登録済みログから簡易的に返します。
+`GEMINI_API_KEY` が未設定でも動作しますが、その場合は埋め込み検索と LLM 回答が無効になり、登録済みログから簡易的に返します。
 
 ## API
 
 ### GET `/api/status`
 
-OpenAI の利用可否を返します。
+LLM/Embedding のプロバイダと有効状態を返します。
 
 レスポンス例:
 
 ~~~json
-{ "openaiEnabled": true }
+{
+  "llmProvider": "gemini",
+  "embeddingsProvider": "gemini",
+  "llmEnabled": true,
+  "embeddingsEnabled": true,
+  "llmModel": "gemini-1.5-flash",
+  "embeddingsModel": "text-embedding-004",
+  "embeddingsModelKey": "gemini:text-embedding-004"
+}
 ~~~
 
 ### POST `/api/entries`
@@ -88,9 +96,9 @@ OpenAI の利用可否を返します。
 
 主要なもの:
 
-- `OPENAI_API_KEY`（必須: OpenAI を使う場合）
-- `OPENAI_EMBED_MODEL`（任意, 既定: `text-embedding-3-small`）
-- `OPENAI_CHAT_MODEL`（任意, 既定: `gpt-4o-mini`）
+- `GEMINI_API_KEY`（必須: Gemini を使う場合）
+- `GEMINI_EMBEDDING_MODEL`（任意, 既定: `text-embedding-004`）
+- `GEMINI_CHAT_MODEL`（任意, 既定: `gemini-1.5-flash`）
 - `PORT`（任意, 既定: `8787`）
 - `DATA_DIR`（任意, 既定: `./data`）
 

@@ -3,7 +3,7 @@ import path from "node:path";
 export const env = {
   port: Number(process.env.PORT ?? 8787),
 
-  // Gemini API のみ使用する（OpenAI/localhash は使用しない）
+  // Gemini API のみ使用する
   llmProvider: "gemini" as const,
   embeddingsProvider: "gemini" as const,
 
