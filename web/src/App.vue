@@ -168,8 +168,8 @@ onMounted(() => {
         <h2>記録する</h2>
 
         <label>日付</label>
-        <input v-model="date" placeholder="2026-01-25" />
-        <div class="small">例: 2026/01/25 や 2026年1月25日 もOK</div>
+        <input v-model="date" type="date" required />
+        <div class="small">カレンダーから選択（形式: YYYY-MM-DD）</div>
 
         <label>タイトル</label>
         <input v-model="title" placeholder="例: RAGのGUI作成" />
