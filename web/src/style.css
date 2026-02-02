@@ -86,6 +86,19 @@ textarea {
   outline: none;
 }
 
+/* Keep the app dark, but make the native date picker readable. */
+input[type='date'] {
+  color-scheme: light;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0b1220;
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
 textarea {
   min-height: 120px;
   resize: vertical;
