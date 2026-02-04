@@ -23,7 +23,7 @@ type ScoredHit = {
 const createEntrySchema = z.object({
   date: z.string().min(1),
   title: z.string().min(1),
-  content: z.string().min(1),
+  content: z.string().min(1).max(400),
 });
 
 export async function createEntry(db: Database.Database, input: unknown, embedModel: string) {

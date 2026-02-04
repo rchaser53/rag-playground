@@ -74,6 +74,9 @@ const statusText = ref('API: checking...')
 const statusOk = ref<boolean | null>(null)
 
 const topK = 6
+const CONTENT_MAX = 400
+
+const contentRemaining = computed(() => Math.max(0, CONTENT_MAX - content.value.length))
 
 const statusClass = computed(() => {
   if (statusOk.value === false) return 'pill pillDanger'
@@ -96,6 +99,10 @@ async function refreshStatus() {
 }
 
 async function saveEntry() {
+  if (content.value.length > CONTENT_MAX) {
+    saveToast.value = `失敗: 詳細は${CONTENT_MAX}文字以内で入力してください`
+    return
+  }
   saveToast.value = '保存中...'
   saving.value = true
   try {
@@ -175,7 +182,12 @@ onMounted(() => {
         <input v-model="title" placeholder="例: RAGのGUI作成" />
 
         <label>詳細</label>
-        <textarea v-model="content" placeholder="何をやったか、メモ、リンク、TODOなど" />
+        <textarea
+          v-model="content"
+          :maxlength="CONTENT_MAX"
+          placeholder="何をやったか、メモ、リンク、TODOなど"
+        />
+        <div class="small">残り{{ contentRemaining }}文字</div>
 
         <div class="row" style="margin-top: 10px">
           <button :disabled="saving" @click="saveEntry">保存</button>
